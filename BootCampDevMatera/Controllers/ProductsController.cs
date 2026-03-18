@@ -55,12 +55,26 @@ namespace BootCampDevMatera.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Code,Description,Price,Stock")] Product product)
         {
+            if (!string.IsNullOrWhiteSpace(product.Code) && product.Code.Length > 6)
+            {
+                ModelState.AddModelError("Code", "O código deve ter no máximo 6 caracteres.");
+            }
+
+            bool codeExists = await _context.Products
+                .AnyAsync(p => p.Code == product.Code);
+
+            if (codeExists)
+            {
+                ModelState.AddModelError("Code", "Já existe um produto com esse código.");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(product);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
             return View(product);
         }
 

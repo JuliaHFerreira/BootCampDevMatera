@@ -19,6 +19,8 @@ public partial class BdContext : DbContext
 
     public virtual DbSet<Order> Orders { get; set; }
 
+    public virtual DbSet<OrderIten> OrderItens { get; set; }
+
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Seller> Sellers { get; set; }
@@ -50,34 +52,56 @@ public partial class BdContext : DbContext
         {
             entity.ToTable("Order");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
             entity.Property(e => e.DateOrder)
                 .HasColumnType("datetime")
                 .HasColumnName("dateOrder");
             entity.Property(e => e.IdClient).HasColumnName("idClient");
-            entity.Property(e => e.IdProduct).HasColumnName("idProduct");
-            entity.Property(e => e.Quantity).HasColumnName("quantity");
             entity.Property(e => e.Value).HasColumnName("value");
 
             entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.IdClient)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Order_Client");
-
-            entity.HasOne(d => d.IdProductNavigation).WithMany(p => p.Orders)
-                .HasForeignKey(d => d.IdProduct)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Order_Product");
+                .HasConstraintName("FK_Order_Client1");
 
             entity.HasOne(d => d.IdSellerNavigation).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.IdSeller)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Order_Seller");
+                .HasConstraintName("FK_Order_Seller1");
+        });
+
+        modelBuilder.Entity<OrderIten>(entity =>
+        {
+            entity.ToTable("OrderIten");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.OrderId).HasColumnName("orderId");
+            entity.Property(e => e.ProductCode)
+                .HasMaxLength(6)
+                .IsUnicode(false)
+                .HasColumnName("productCode");
+            entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.Value).HasColumnName("value");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.OrderItens)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderIten_Order");
+
+            entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.OrderItens)
+                .HasPrincipalKey(p => p.Code)
+                .HasForeignKey(d => d.ProductCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderIten_Product");
         });
 
         modelBuilder.Entity<Product>(entity =>
         {
             entity.ToTable("Product");
+
+            entity.HasIndex(e => e.Code, "UQ_Product_Code").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Code)
@@ -88,8 +112,11 @@ public partial class BdContext : DbContext
                 .HasMaxLength(90)
                 .IsUnicode(false)
                 .HasColumnName("description");
-            entity.Property(e => e.Price).HasColumnName("price");
-            entity.Property(e => e.Stock).HasColumnName("stock");
+            entity.Property(e => e.Price)
+                .HasColumnType("decimal(18,2)")
+                .HasColumnName("price");
+            entity.Property(e => e.Stock)
+                .HasColumnName("stock");
         });
 
         modelBuilder.Entity<Seller>(entity =>
