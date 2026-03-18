@@ -1,11 +1,11 @@
 ﻿@model IEnumerable<BootCampDevMatera.Data.Order>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Pedidos";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<h1>Pedidos</h1>
 
 <p>
     <a asp-action="Create">Create New</a>
@@ -13,24 +13,13 @@
 <table class="table">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Quantity)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Value)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DateOrder)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IdClientNavigation)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IdProductNavigation)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IdSellerNavigation)
-            </th>
+            <th>Id do Produto</th>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Valor</th>
+            <th>Data do Pedido</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
             <th></th>
         </tr>
     </thead>
@@ -38,22 +27,25 @@
 @foreach (var item in Model) {
         <tr>
             <td>
+                @Html.DisplayFor(modelItem => item.IdProduct)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IdProductNavigation.Code)
+            </td>
+            <td>
                 @Html.DisplayFor(modelItem => item.Quantity)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Value)
+                @item.Value.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.DateOrder)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.IdClientNavigation.Id)
+                @Html.DisplayFor(modelItem => item.IdClientNavigation.Name)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.IdProductNavigation.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IdSellerNavigation.Id)
+                @Html.DisplayFor(modelItem => item.IdSellerNavigation.Name)
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |

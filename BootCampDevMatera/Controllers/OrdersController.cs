@@ -60,17 +60,36 @@ namespace BootCampDevMatera.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,IdProduct,Quantity,Value,DateOrder,IdClient,IdSeller")] Order order)
+        public async Task<IActionResult> Create([Bind("Id,IdProduct,Quantity,DateOrder,IdClient,IdSeller")] Order order)
         {
-            if (ModelState.IsValid)
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == order.IdProduct);
+
+            if (product == null)
             {
+                ModelState.AddModelError("IdProduct", "Produto não encontrado.");
+            }
+
+            if (order.Quantity <= 0)
+            {
+                ModelState.AddModelError("Quantity", "A quantidade deve ser maior que zero.");
+            }
+
+            order.Value = product.Price * order.Quantity;
+
                 _context.Add(order);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
+
+            // preenche o Value novamente caso volte para a tela com erro
+            if (product != null)
+            {
+                order.Value = product.Price * order.Quantity;
             }
+
             ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name", order.IdClient);
             ViewData["IdProduct"] = new SelectList(_context.Products, "Id", "Code", order.IdProduct);
             ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name", order.IdSeller);
+
             return View(order);
         }
 
