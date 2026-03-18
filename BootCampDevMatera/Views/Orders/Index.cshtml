@@ -1,56 +1,60 @@
 ﻿@model IEnumerable<BootCampDevMatera.Data.Order>
 
 @{
-    ViewData["Title"] = "Pedidos";
+    ViewData["Title"] = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Pedidos</h1>
+<h1>Index</h1>
 
 <p>
     <a asp-action="Create">Create New</a>
 </p>
+
 <table class="table">
     <thead>
         <tr>
-            <th>Id do Produto</th>
-            <th>Produto</th>
-            <th>Quantidade</th>
-            <th>Valor</th>
-            <th>Data do Pedido</th>
+            <th>Pedido</th>
             <th>Cliente</th>
             <th>Vendedor</th>
+            <th>Data</th>
+            <th>Itens</th>
+            <th>Valor Total</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var order in Model)
+{
         <tr>
+            <td>@order.Id</td>
+            <td>@order.IdClientNavigation?.Name</td>
+            <td>@order.IdSellerNavigation?.Name</td>
+            <td>@order.DateOrder.ToString("dd/MM/yyyy")</td>
             <td>
-                @Html.DisplayFor(modelItem => item.IdProduct)
+                @if (order.OrderItens != null && order.OrderItens.Any())
+                {
+                    foreach (var item in order.OrderItens)
+                    {
+                        <div>
+                            @item.ProductCodeNavigation?.Description
+                            - Qtd: @item.Quantity
+                            - Valor: @item.Value.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
+                        </div>
+                    }
+                }
+                else
+                {
+                    <span>Sem itens</span>
+                }
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.IdProductNavigation.Code)
+                @order.Value.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Quantity)
-            </td>
-            <td>
-                @item.Value.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DateOrder)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IdClientNavigation.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IdSellerNavigation.Name)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                <a asp-action="Edit" asp-route-id="@order.Id">Editar</a> |
+                <a asp-action="Details" asp-route-id="@order.Id">Detalhes</a> |
+                <a asp-action="Delete" asp-route-id="@order.Id">Excluir</a>
             </td>
         </tr>
 }

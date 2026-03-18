@@ -1,46 +1,73 @@
-﻿@model BootCampDevMatera.Data.Order
+﻿@model BootCampDevMatera.Views.Orders.OrderFormViewModel
 
 @{
-    ViewData["Title"] = "Create";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Pedido";
 }
 
-<h1>Create</h1>
+<h1>@ViewData["Title"]</h1>
 
-<h4>Order</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="IdProduct" class="control-label"></label>
-                <select asp-for="IdProduct" class ="form-control" asp-items="ViewBag.IdProduct"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="Quantity" class="control-label"></label>
-                <input asp-for="Quantity" class="form-control" />
-                <span asp-validation-for="Quantity" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DateOrder" class="control-label"></label>
-                <input asp-for="DateOrder" class="form-control" />
-                <span asp-validation-for="DateOrder" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="IdClient" class="control-label"></label>
-                <select asp-for="IdClient" class ="form-control" asp-items="ViewBag.IdClient"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="IdSeller" class="control-label"></label>
-                <select asp-for="IdSeller" class ="form-control" asp-items="ViewBag.IdSeller"></select>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="@ViewContext.RouteData.Values["action"]">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <input asp-for="Id" type="hidden" />
+
+    <div class="form-group">
+        <label asp-for="DateOrder" class="control-label">Data do Pedido</label>
+        <input asp-for="DateOrder" type="date" class="form-control" />
+        <span asp-validation-for="DateOrder" class="text-danger"></span>
     </div>
-</div>
+
+    <div class="form-group">
+        <label asp-for="IdClient" class="control-label">Cliente</label>
+        <select asp-for="IdClient" class="form-control" asp-items="ViewBag.IdClient"></select>
+        <span asp-validation-for="IdClient" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IdSeller" class="control-label">Vendedor</label>
+        <select asp-for="IdSeller" class="form-control" asp-items="ViewBag.IdSeller"></select>
+        <span asp-validation-for="IdSeller" class="text-danger"></span>
+    </div>
+
+    <hr />
+    <h4>Itens do Pedido</h4>
+
+    @for (int i = 0; i < Model.Itens.Count; i++)
+    {
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="control-label">Produto</label>
+                <input asp-for="Itens[i].ProductCode" class="form-control" list="productsList" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="control-label">Quantidade</label>
+                <input asp-for="Itens[i].Quantity" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="control-label">Valor do Item</label>
+                <input asp-for="Itens[i].Value" class="form-control" readonly />
+            </div>
+        </div>
+    }
+
+    <datalist id="productsList">
+        @foreach (var product in ViewBag.Products)
+        {
+            <option value="@product.Code">@product.Code - @product.Description</option>
+        }
+    </datalist>
+
+    <div class="form-group mt-3">
+        <label asp-for="Value" class="control-label">Valor Total</label>
+        <input asp-for="Value" class="form-control" readonly />
+    </div>
+
+    <div class="form-group mt-3">
+        <input type="submit" value="Salvar" class="btn btn-primary" />
+    </div>
+</form>
 
 <div>
     <a asp-action="Index">Back to List</a>

@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using BootCampDevMatera.Data;
+using BootCampDevMatera.Views.OrderItens;
+using BootCampDevMatera.Views.Orders;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using BootCampDevMatera.Data;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BootCampDevMatera.Controllers
 {
@@ -21,8 +23,19 @@ namespace BootCampDevMatera.Controllers
         // GET: Orders
         public async Task<IActionResult> Index()
         {
-            var bdContext = _context.Orders.Include(o => o.IdClientNavigation).Include(o => o.IdProductNavigation).Include(o => o.IdSellerNavigation);
-            return View(await bdContext.ToListAsync());
+            var orders = await _context.Orders
+                .Include(o => o.IdClientNavigation)
+                .Include(o => o.IdSellerNavigation)
+                .Include(o => o.OrderItens)
+                    .ThenInclude(oi => oi.ProductCodeNavigation)
+                .ToListAsync();
+
+            foreach (var order in orders)
+            {
+                order.Value = order.OrderItens.Sum(oi => oi.Value);
+            }
+
+            return View(orders);
         }
 
         // GET: Orders/Details/5
@@ -35,7 +48,6 @@ namespace BootCampDevMatera.Controllers
 
             var order = await _context.Orders
                 .Include(o => o.IdClientNavigation)
-                .Include(o => o.IdProductNavigation)
                 .Include(o => o.IdSellerNavigation)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (order == null)
@@ -49,10 +61,27 @@ namespace BootCampDevMatera.Controllers
         // GET: Orders/Create
         public IActionResult Create()
         {
+            var model = new OrderFormViewModel
+            {
+                DateOrder = DateTime.Today,
+                Itens = new List<OrderItenFormViewModel>
+        {
+            new OrderItenFormViewModel()
+        }
+            };
+
             ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name");
-            ViewData["IdProduct"] = new SelectList(_context.Products, "Id", "Code");
             ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name");
-            return View();
+            ViewBag.Products = _context.Products
+                .Select(p => new
+                {
+                    p.Code,
+                    p.Description,
+                    Display = p.Code + " - " + p.Description
+                })
+                .ToList();
+
+            return View(model);
         }
 
         // POST: Orders/Create
@@ -60,56 +89,113 @@ namespace BootCampDevMatera.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,IdProduct,Quantity,DateOrder,IdClient,IdSeller")] Order order)
+        public async Task<IActionResult> Create(OrderFormViewModel model)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == order.IdProduct);
-
-            if (product == null)
+            if (model.Itens == null || !model.Itens.Any())
             {
-                ModelState.AddModelError("IdProduct", "Produto não encontrado.");
+                ModelState.AddModelError("", "Adicione pelo menos um item.");
             }
 
-            if (order.Quantity <= 0)
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError("Quantity", "A quantidade deve ser maior que zero.");
+                ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name", model.IdClient);
+                ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name", model.IdSeller);
+                ViewBag.Products = _context.Products
+                    .Select(p => new
+                    {
+                        p.Code,
+                        Display = p.Code + " - " + p.Description
+                    })
+                    .ToList();
+                return View(model);
             }
 
-            order.Value = product.Price * order.Quantity;
-
-                _context.Add(order);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-
-            // preenche o Value novamente caso volte para a tela com erro
-            if (product != null)
+            var order = new Order
             {
-                order.Value = product.Price * order.Quantity;
+                DateOrder = model.DateOrder,
+                IdClient = model.IdClient,
+                IdSeller = model.IdSeller,
+                Value = 0
+            };
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            Decimal totalOrder = 0;
+
+            foreach (var item in model.Itens)
+            {
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Code == item.ProductCode);
+
+                if (product == null)
+                    continue;
+
+                Decimal itemValue = product.Price * item.Quantity;
+
+                var orderIten = new OrderIten
+                {
+                    OrderId = order.Id,
+                    ProductCode = item.ProductCode,
+                    Quantity = item.Quantity,
+                    Value = itemValue
+                };
+
+                _context.OrderItens.Add(orderIten);
+                totalOrder += itemValue;
             }
 
-            ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name", order.IdClient);
-            ViewData["IdProduct"] = new SelectList(_context.Products, "Id", "Code", order.IdProduct);
-            ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name", order.IdSeller);
+            order.Value = totalOrder;
+            await _context.SaveChangesAsync();
 
-            return View(order);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Orders/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
+
+            var order = await _context.Orders
+                .Include(o => o.OrderItens)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (order == null)
+                return NotFound();
+
+            var model = new OrderFormViewModel
+            {
+                Id = order.Id,
+                DateOrder = order.DateOrder,
+                IdClient = order.IdClient,
+                IdSeller = order.IdSeller,
+                Value = order.Value,
+                Itens = order.OrderItens.Select(i => new OrderItenFormViewModel
+                {
+                    Id = i.Id,
+                    ProductCode = i.ProductCode,
+                    Quantity = i.Quantity,
+                    Value = i.Value
+                }).ToList()
+            };
+
+            if (!model.Itens.Any())
+            {
+                model.Itens.Add(new OrderItenFormViewModel());
             }
 
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null)
-            {
-                return NotFound();
-            }
-            ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name", order.IdClient);
-            ViewData["IdProduct"] = new SelectList(_context.Products, "Id", "Code", order.IdProduct);
-            ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name", order.IdSeller);
-            return View(order);
+            ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name");
+            ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name");
+            ViewBag.Products = _context.Products
+                .Select(p => new
+                {
+                    p.Code,
+                    Display = p.Code + " - " + p.Description
+                })
+                .ToList();
+
+            return View(model);
         }
 
         // POST: Orders/Edit/5
@@ -117,37 +203,72 @@ namespace BootCampDevMatera.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,IdProduct,Quantity,Value,DateOrder,IdClient,IdSeller")] Order order)
+        public async Task<IActionResult> Edit(int id, OrderFormViewModel model)
         {
-            if (id != order.Id)
-            {
+            if (id != model.Id)
                 return NotFound();
+
+            var order = await _context.Orders
+                .Include(o => o.OrderItens)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (order == null)
+                return NotFound();
+
+            if (model.Itens == null || !model.Itens.Any())
+            {
+                ModelState.AddModelError("", "Adicione pelo menos um item.");
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(order);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!OrderExists(order.Id))
+                ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name", model.IdClient);
+                ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name", model.IdSeller);
+                ViewBag.Products = _context.Products
+                    .Select(p => new
                     {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                        p.Code,
+                        Display = p.Code + " - " + p.Description
+                    })
+                    .ToList();
+                return View(model);
             }
-            ViewData["IdClient"] = new SelectList(_context.Clients, "Id", "Name", order.IdClient);
-            ViewData["IdProduct"] = new SelectList(_context.Products, "Id", "Code", order.IdProduct);
-            ViewData["IdSeller"] = new SelectList(_context.Sellers, "Id", "Name", order.IdSeller);
-            return View(order);
+
+            order.DateOrder = model.DateOrder;
+            order.IdClient = model.IdClient;
+            order.IdSeller = model.IdSeller;
+
+            _context.OrderItens.RemoveRange(order.OrderItens);
+
+            Decimal totalOrder = 0;
+
+            foreach (var item in model.Itens)
+            {
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Code == item.ProductCode);
+
+                if (product == null)
+                    continue;
+
+                Decimal itemValue = product.Price * item.Quantity;
+
+                var orderItem = new OrderIten
+                {
+                    OrderId = order.Id,
+                    ProductCode = item.ProductCode,
+                    Quantity = item.Quantity,
+                    Value = itemValue
+                };
+
+                _context.OrderItens.Add(orderItem);
+                totalOrder += itemValue;
+            }
+
+            order.Value = totalOrder;
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Orders/Delete/5
@@ -160,7 +281,6 @@ namespace BootCampDevMatera.Controllers
 
             var order = await _context.Orders
                 .Include(o => o.IdClientNavigation)
-                .Include(o => o.IdProductNavigation)
                 .Include(o => o.IdSellerNavigation)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (order == null)

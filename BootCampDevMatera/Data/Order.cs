@@ -7,11 +7,7 @@ public partial class Order
 {
     public int Id { get; set; }
 
-    public int IdProduct { get; set; }
-
-    public int Quantity { get; set; }
-
-    public double Value { get; set; }
+    public Decimal Value { get; set; }
 
     public DateTime DateOrder { get; set; }
 
@@ -21,7 +17,7 @@ public partial class Order
 
     public virtual Client IdClientNavigation { get; set; } = null!;
 
-    public virtual Product IdProductNavigation { get; set; } = null!;
-
     public virtual Seller IdSellerNavigation { get; set; } = null!;
+
+    public virtual ICollection<OrderIten> OrderItens { get; set; } = new List<OrderIten>();
 }
