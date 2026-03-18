@@ -77,6 +77,7 @@ namespace BootCampDevMatera.Controllers
                 {
                     p.Code,
                     p.Description,
+                    p.Price,
                     Display = p.Code + " - " + p.Description
                 })
                 .ToList();
@@ -104,7 +105,8 @@ namespace BootCampDevMatera.Controllers
                     .Select(p => new
                     {
                         p.Code,
-                        Display = p.Code + " - " + p.Description
+                        p.Description,
+                        p.Price
                     })
                     .ToList();
                 return View(model);
@@ -129,20 +131,23 @@ namespace BootCampDevMatera.Controllers
                     .FirstOrDefaultAsync(p => p.Code == item.ProductCode);
 
                 if (product == null)
+                {
+                    ModelState.AddModelError("", $"Produto {item.ProductCode} não encontrado.");
                     continue;
+                }
 
-                Decimal itemValue = product.Price * item.Quantity;
+                item.Value = product.Price * item.Quantity;
+                totalOrder += item.Value;
 
                 var orderIten = new OrderIten
                 {
                     OrderId = order.Id,
                     ProductCode = item.ProductCode,
                     Quantity = item.Quantity,
-                    Value = itemValue
+                    Value = item.Value
                 };
 
                 _context.OrderItens.Add(orderIten);
-                totalOrder += itemValue;
             }
 
             order.Value = totalOrder;
@@ -191,6 +196,8 @@ namespace BootCampDevMatera.Controllers
                 .Select(p => new
                 {
                     p.Code,
+                    p.Description,
+                    p.Price,
                     Display = p.Code + " - " + p.Description
                 })
                 .ToList();
@@ -228,6 +235,8 @@ namespace BootCampDevMatera.Controllers
                     .Select(p => new
                     {
                         p.Code,
+                        p.Description,
+                        p.Price,
                         Display = p.Code + " - " + p.Description
                     })
                     .ToList();
