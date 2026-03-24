@@ -1,0 +1,62 @@
+﻿@model IEnumerable<BootCampDevMatera.Data.Order>
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Pedido</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
+            <th>Data</th>
+            <th>Itens</th>
+            <th>Valor Total</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var order in Model)
+{
+        <tr>
+            <td>@order.Id</td>
+            <td>@order.IdClientNavigation?.Name</td>
+            <td>@order.IdSellerNavigation?.Name</td>
+            <td>@order.DateOrder.ToString("dd/MM/yyyy")</td>
+            <td>
+                @if (order.OrderItens != null && order.OrderItens.Any())
+                {
+                    foreach (var item in order.OrderItens)
+                    {
+                        <div>
+                            @item.ProductCodeNavigation?.Description
+                            - Qtd: @item.Quantity
+                            - Valor: @item.Value.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
+                        </div>
+                    }
+                }
+                else
+                {
+                    <span>Sem itens</span>
+                }
+            </td>
+            <td>
+                @order.Value.ToString("C", new System.Globalization.CultureInfo("pt-BR"))
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@order.Id">Editar</a> |
+                <a asp-action="Details" asp-route-id="@order.Id">Detalhes</a> |
+                <a asp-action="Delete" asp-route-id="@order.Id">Excluir</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
